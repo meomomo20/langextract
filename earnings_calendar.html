@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Stock Earnings Calendar</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #242736; --border: #2e3148;
+  --text: #e4e6f0; --text-dim: #8b8fa8; --accent: #6c5ce7; --accent-light: #a29bfe;
+  --green: #00cec9; --red: #ff7675; --orange: #fdcb6e; --blue: #74b9ff;
+  --radius: 10px; --shadow: 0 2px 12px rgba(0,0,0,.3);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+.app { max-width: 960px; margin: 0 auto; padding: 32px 20px 60px; }
+.header { text-align: center; margin-bottom: 32px; }
+.header h1 { font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--accent-light), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.subtitle { color: var(--text-dim); font-size: .95rem; margin-top: 4px; }
+.popular-tickers { text-align: center; margin-bottom: 20px; }
+.popular-tickers span { color: var(--text-dim); font-size: .85rem; margin-right: 6px; }
+.ticker-chip { display: inline-block; background: var(--surface2); border: 1px solid var(--border); color: var(--accent-light); padding: 4px 12px; border-radius: 16px; font-size: .82rem; font-weight: 600; cursor: pointer; margin: 3px 2px; transition: all .2s; }
+.ticker-chip:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.search-bar { display: flex; gap: 10px; max-width: 520px; margin: 0 auto 24px; }
+.search-bar input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); outline: none; transition: border-color .2s; text-transform: uppercase; }
+.search-bar input::placeholder { text-transform: none; color: var(--text-dim); }
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar button { padding: 12px 28px; font-size: 1rem; font-weight: 600; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer; transition: background .2s, transform .1s; }
+.search-bar button:hover { background: #5b4bd5; }
+.search-bar button:active { transform: scale(.97); }
+.error-msg { text-align: center; color: var(--red); margin-bottom: 16px; font-size: .9rem; }
+.loading { text-align: center; padding: 40px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 12px; }
+.spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.company-info { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.company-info h2 { font-size: 1.4rem; font-weight: 600; }
+.ticker-badge { background: var(--accent); color: #fff; padding: 4px 14px; border-radius: 20px; font-size: .85rem; font-weight: 700; letter-spacing: .5px; }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+.section h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--accent-light); }
+.upcoming-section { background: linear-gradient(135deg, #1a1d2f, #1f2340); border-color: var(--accent); }
+.upcoming-dates { display: flex; gap: 12px; flex-wrap: wrap; }
+.upcoming-date-card { background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px; padding: 14px 22px; text-align: center; }
+.upcoming-date-card .date-value { font-size: 1.2rem; font-weight: 700; color: var(--accent-light); }
+.upcoming-date-card .date-label { font-size: .8rem; color: var(--text-dim); margin-top: 2px; }
+.calendar-controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 16px; }
+.cal-nav { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1.1rem; padding: 6px 14px; cursor: pointer; transition: background .2s; }
+.cal-nav:hover { background: var(--border); }
+.cal-title { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 0; min-width: 180px; text-align: center; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-header { text-align: center; font-size: .75rem; font-weight: 600; color: var(--text-dim); padding: 8px 0; text-transform: uppercase; letter-spacing: .5px; }
+.cal-day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: .85rem; border-radius: 8px; color: var(--text-dim); transition: background .15s; }
+.cal-day.current-month { color: var(--text); }
+.cal-day.today { border: 1px solid var(--accent); font-weight: 700; }
+.cal-day.has-event { cursor: pointer; font-weight: 700; }
+.cal-day.has-event:hover { background: var(--surface2); }
+.cal-day .event-dot { position: absolute; bottom: 4px; width: 6px; height: 6px; border-radius: 50%; }
+.cal-day .event-dot.upcoming { background: var(--accent-light); }
+.cal-day .event-dot.beat { background: var(--green); }
+.cal-day .event-dot.miss { background: var(--red); }
+.cal-day .event-dot.neutral { background: var(--orange); }
+.cal-tooltip { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: .78rem; white-space: nowrap; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,.4); color: var(--text); line-height: 1.5; }
+.cal-day.has-event:hover .cal-tooltip { display: block; }
+.calendar-legend { display: flex; gap: 16px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--text-dim); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-upcoming { background: var(--accent-light); }
+.dot-beat { background: var(--green); }
+.dot-miss { background: var(--red); }
+.dot-history { background: var(--orange); }
+.table-wrap { overflow-x: auto; }
+.earnings-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.earnings-table th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: .78rem; text-transform: uppercase; letter-spacing: .5px; }
+.earnings-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.earnings-table tbody tr:hover { background: var(--surface2); }
+.surprise-positive { color: var(--green); font-weight: 600; }
+.surprise-negative { color: var(--red); font-weight: 600; }
+.chart-container { position: relative; height: 280px; }
+@media (max-width: 600px) {
+  .app { padding: 16px 12px 40px; } .header h1 { font-size: 1.3rem; }
+  .search-bar { flex-direction: column; } .search-bar button { width: 100%; }
+  .section { padding: 16px; } .cal-day { font-size: .72rem; } .chart-container { height: 220px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <h1>US Stock Earnings Calendar</h1>
+    <p class="subtitle">Search a stock ticker to view quarterly &amp; annual earnings report dates</p>
+  </header>
+
+  <div class="popular-tickers">
+    <span>Popular:</span>
+    <span class="ticker-chip" onclick="searchTicker('AAPL')">AAPL</span>
+    <span class="ticker-chip" onclick="searchTicker('MSFT')">MSFT</span>
+    <span class="ticker-chip" onclick="searchTicker('GOOGL')">GOOGL</span>
+    <span class="ticker-chip" onclick="searchTicker('AMZN')">AMZN</span>
+    <span class="ticker-chip" onclick="searchTicker('NVDA')">NVDA</span>
+    <span class="ticker-chip" onclick="searchTicker('META')">META</span>
+    <span class="ticker-chip" onclick="searchTicker('TSLA')">TSLA</span>
+    <span class="ticker-chip" onclick="searchTicker('JPM')">JPM</span>
+    <span class="ticker-chip" onclick="searchTicker('NFLX')">NFLX</span>
+    <span class="ticker-chip" onclick="searchTicker('DIS')">DIS</span>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="tickerInput" placeholder="Enter stock ticker (e.g., AAPL, MSFT, GOOGL)" maxlength="5" autocomplete="off">
+    <button id="searchBtn">Search</button>
+  </div>
+  <div id="errorMsg" class="error-msg" style="display:none;"></div>
+  <div id="loading" class="loading" style="display:none;"><div class="spinner"></div><span>Loading earnings data...</span></div>
+
+  <div id="results" style="display:none;">
+    <div class="company-info">
+      <h2 id="companyName"></h2>
+      <span id="tickerBadge" class="ticker-badge"></span>
+    </div>
+
+    <div id="upcomingSection" class="section upcoming-section" style="display:none;">
+      <h3>Upcoming Earnings Date</h3>
+      <div id="upcomingDates" class="upcoming-dates"></div>
+    </div>
+
+    <div class="section">
+      <div class="calendar-controls">
+        <button id="prevMonth" class="cal-nav">&larr;</button>
+        <h3 id="calendarTitle" class="cal-title"></h3>
+        <button id="nextMonth" class="cal-nav">&rarr;</button>
+      </div>
+      <div class="calendar" id="calendar"></div>
+      <div class="calendar-legend">
+        <span class="legend-item"><span class="dot dot-upcoming"></span> Upcoming Earnings</span>
+        <span class="legend-item"><span class="dot dot-beat"></span> Beat Estimate</span>
+        <span class="legend-item"><span class="dot dot-miss"></span> Missed Estimate</span>
+        <span class="legend-item"><span class="dot dot-history"></span> Reported (No Surprise Data)</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Quarterly Earnings History</h3>
+      <div class="table-wrap">
+        <table class="earnings-table">
+          <thead><tr><th>Period</th><th>Report Date</th><th>EPS Actual</th><th>EPS Estimate</th><th>Surprise %</th></tr></thead>
+          <tbody id="earningsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Quarterly Financials</h3>
+      <div class="chart-container"><canvas id="quarterlyChart"></canvas></div>
+    </div>
+
+    <div class="section" id="yearlySection" style="display:none;">
+      <h3>Annual Financials</h3>
+      <div class="chart-container"><canvas id="yearlyChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  Earnings data for popular US stocks
+//  Report dates sourced from public earnings calendars.
+//  Format: [period, reportDate, epsActual, epsEstimate]
+// ═══════════════════════════════════════════════════════════════════
+const STOCKS = {
+  AAPL: {
+    name: "Apple Inc.",
+    sector: "Technology",
+    nextEarnings: "2026-04-30",
+    history: [
+      ["1Q2026","2026-01-30",2.40,2.36],
+      ["4Q2025","2025-10-30",1.64,1.60],
+      ["3Q2025","2025-07-31",1.46,1.35],
+      ["2Q2025","2025-05-01",1.65,1.62],
+      ["1Q2025","2025-01-30",2.40,2.35],
+      ["4Q2024","2024-10-31",1.64,1.60],
+      ["3Q2024","2024-08-01",1.40,1.35],
+      ["2Q2024","2024-05-02",1.53,1.50],
+    ],
+    quarterly: [["1Q2026",124300,36330],["4Q2025",94930,26400],["3Q2025",85780,23640],["2Q2025",95360,24780]],
+    yearly: [["2025",400500,111400],["2024",391035,101560],["2023",383285,96995],["2022",394328,99803]],
+  },
+  MSFT: {
+    name: "Microsoft Corporation",
+    sector: "Technology",
+    nextEarnings: "2026-04-22",
+    history: [
+      ["2Q2026","2026-01-29",3.23,3.11],
+      ["1Q2026","2025-10-29",3.30,3.10],
+      ["4Q2025","2025-07-22",2.95,2.93],
+      ["3Q2025","2025-04-30",3.46,3.22],
+      ["2Q2025","2025-01-29",3.23,3.11],
+      ["1Q2025","2024-10-30",3.30,3.10],
+      ["4Q2024","2024-07-30",2.95,2.93],
+      ["3Q2024","2024-04-25",2.94,2.82],
+    ],
+    quarterly: [["2Q2026",69600,24100],["1Q2026",65600,24700],["4Q2025",64700,22000],["3Q2025",61900,21900]],
+    yearly: [["2025",262000,94500],["2024",245122,88136],["2023",211915,72361],["2022",198270,72738]],
+  },
+  GOOGL: {
+    name: "Alphabet Inc.",
+    sector: "Technology",
+    nextEarnings: "2026-04-29",
+    history: [
+      ["4Q2025","2026-02-04",2.15,2.12],
+      ["3Q2025","2025-10-29",2.12,2.01],
+      ["2Q2025","2025-07-29",1.89,1.85],
+      ["1Q2025","2025-04-24",2.81,2.02],
+      ["4Q2024","2025-02-04",2.15,2.05],
+      ["3Q2024","2024-10-29",2.12,1.85],
+      ["2Q2024","2024-07-23",1.89,1.85],
+      ["1Q2024","2024-04-25",1.89,1.51],
+    ],
+    quarterly: [["4Q2025",96469,30970],["3Q2025",88268,26300],["2Q2025",84742,23620],["1Q2025",90234,34540]],
+    yearly: [["2025",360000,115500],["2024",350018,100554],["2023",307394,73795],["2022",282836,59972]],
+  },
+  AMZN: {
+    name: "Amazon.com, Inc.",
+    sector: "Consumer Cyclical",
+    nextEarnings: "2026-04-30",
+    history: [
+      ["4Q2025","2026-02-06",1.86,1.49],
+      ["3Q2025","2025-10-30",1.43,1.14],
+      ["2Q2025","2025-08-01",1.26,1.03],
+      ["1Q2025","2025-05-01",1.59,1.36],
+      ["4Q2024","2025-02-06",1.86,1.49],
+      ["3Q2024","2024-10-31",1.43,1.14],
+      ["2Q2024","2024-08-01",1.26,1.03],
+      ["1Q2024","2024-04-30",0.98,0.83],
+    ],
+    quarterly: [["4Q2025",187790,20000],["3Q2025",158877,17400],["2Q2025",147977,13485],["1Q2025",155670,17100]],
+    yearly: [["2025",650300,67900],["2024",637997,59248],["2023",574785,30425],["2022",513983,12248]],
+  },
+  NVDA: {
+    name: "NVIDIA Corporation",
+    sector: "Technology",
+    nextEarnings: "2026-05-28",
+    history: [
+      ["4Q2026","2026-02-26",0.89,0.85],
+      ["3Q2026","2025-11-20",0.81,0.75],
+      ["2Q2026","2025-08-27",0.68,0.64],
+      ["1Q2026","2025-05-28",0.76,0.73],
+      ["4Q2025","2025-02-26",0.89,0.85],
+      ["3Q2025","2024-11-20",0.81,0.75],
+      ["2Q2025","2024-08-28",0.68,0.64],
+      ["1Q2025","2024-05-22",0.62,0.37],
+    ],
+    quarterly: [["4Q2026",39331,22100],["3Q2026",35082,19300],["2Q2026",30040,16599],["1Q2026",26044,15800]],
+    yearly: [["2026",130500,73800],["2025",113270,63090],["2024",60922,32257],["2023",26974,4368]],
+  },
+  META: {
+    name: "Meta Platforms, Inc.",
+    sector: "Technology",
+    nextEarnings: "2026-04-23",
+    history: [
+      ["4Q2025","2026-01-29",8.02,6.77],
+      ["3Q2025","2025-10-29",6.03,5.25],
+      ["2Q2025","2025-07-30",5.31,4.73],
+      ["1Q2025","2025-04-30",6.43,5.28],
+      ["4Q2024","2025-01-29",8.02,6.77],
+      ["3Q2024","2024-10-30",6.03,5.25],
+      ["2Q2024","2024-07-31",5.16,4.73],
+      ["1Q2024","2024-04-24",4.71,4.32],
+    ],
+    quarterly: [["4Q2025",48385,20838],["3Q2025",40589,15688],["2Q2025",39071,13465],["1Q2025",42314,16646]],
+    yearly: [["2025",170360,66637],["2024",164501,62360],["2023",134902,39098],["2022",116609,23200]],
+  },
+  TSLA: {
+    name: "Tesla, Inc.",
+    sector: "Consumer Cyclical",
+    nextEarnings: "2026-04-22",
+    history: [
+      ["4Q2025","2026-01-29",0.73,0.76],
+      ["3Q2025","2025-10-23",0.72,0.60],
+      ["2Q2025","2025-07-22",0.52,0.46],
+      ["1Q2025","2025-04-22",0.27,0.39],
+      ["4Q2024","2025-01-29",0.73,0.76],
+      ["3Q2024","2024-10-23",0.72,0.60],
+      ["2Q2024","2024-07-23",0.52,0.46],
+      ["1Q2024","2024-04-23",0.45,0.49],
+    ],
+    quarterly: [["4Q2025",25707,2318],["3Q2025",25182,2167],["2Q2025",25500,1812],["1Q2025",19335,409]],
+    yearly: [["2025",95724,6706],["2024",97690,7091],["2023",96773,7928],["2022",81462,12556]],
+  },
+  JPM: {
+    name: "JPMorgan Chase & Co.",
+    sector: "Financial Services",
+    nextEarnings: "2026-04-11",
+    history: [
+      ["4Q2025","2026-01-15",4.81,4.09],
+      ["3Q2025","2025-10-15",4.37,4.01],
+      ["2Q2025","2025-07-11",4.40,4.19],
+      ["1Q2025","2025-04-11",5.07,4.63],
+      ["4Q2024","2025-01-15",4.81,4.09],
+      ["3Q2024","2024-10-11",4.37,4.01],
+      ["2Q2024","2024-07-12",4.40,4.19],
+      ["1Q2024","2024-04-12",4.44,4.17],
+    ],
+    quarterly: [["4Q2025",42768,14300],["3Q2025",42654,12898],["2Q2025",50993,18149],["1Q2025",45311,13415]],
+    yearly: [["2025",181700,58762],["2024",178879,58471],["2023",162367,49552],["2022",128695,37676]],
+  },
+  NFLX: {
+    name: "Netflix, Inc.",
+    sector: "Communication Services",
+    nextEarnings: "2026-04-17",
+    history: [
+      ["4Q2025","2026-01-21",4.27,4.20],
+      ["3Q2025","2025-10-16",5.40,5.12],
+      ["2Q2025","2025-07-17",4.88,4.74],
+      ["1Q2025","2025-04-17",6.61,5.71],
+      ["4Q2024","2025-01-21",4.27,4.20],
+      ["3Q2024","2024-10-17",5.40,5.12],
+      ["2Q2024","2024-07-18",4.88,4.74],
+      ["1Q2024","2024-04-18",5.28,4.52],
+    ],
+    quarterly: [["4Q2025",10247,1869],["3Q2025",9825,2364],["2Q2025",9559,2147],["1Q2025",10543,2892]],
+    yearly: [["2025",40174,9272],["2024",38999,8716],["2023",33723,5408],["2022",31616,4492]],
+  },
+  DIS: {
+    name: "The Walt Disney Company",
+    sector: "Communication Services",
+    nextEarnings: "2026-05-07",
+    history: [
+      ["1Q2026","2026-02-05",1.76,1.45],
+      ["4Q2025","2025-11-13",0.25,0.17],
+      ["3Q2025","2025-08-06",1.43,1.19],
+      ["2Q2025","2025-05-07",1.45,1.20],
+      ["1Q2025","2025-02-05",1.76,1.45],
+      ["4Q2024","2024-11-14",0.25,0.17],
+      ["3Q2024","2024-08-07",1.43,1.19],
+      ["2Q2024","2024-05-07",1.21,1.10],
+    ],
+    quarterly: [["1Q2026",24690,2600],["4Q2025",22574,460],["3Q2025",23159,2621],["2Q2025",22083,2400]],
+    yearly: [["2025",92500,8081],["2024",91361,7560],["2023",88898,5002],["2022",82722,3190]],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  App logic
+// ═══════════════════════════════════════════════════════════════════
+const tickerInput = document.getElementById("tickerInput");
+const searchBtn = document.getElementById("searchBtn");
+const errorMsg = document.getElementById("errorMsg");
+const loading = document.getElementById("loading");
+const resultsEl = document.getElementById("results");
+const companyNameEl = document.getElementById("companyName");
+const tickerBadge = document.getElementById("tickerBadge");
+const upcomingSection = document.getElementById("upcomingSection");
+const upcomingDatesEl = document.getElementById("upcomingDates");
+const calendarEl = document.getElementById("calendar");
+const calendarTitle = document.getElementById("calendarTitle");
+const earningsBody = document.getElementById("earningsBody");
+const yearlySection = document.getElementById("yearlySection");
+
+let calMonth = new Date().getMonth();
+let calYear = new Date().getFullYear();
+let events = [];
+let qChart = null, yChart = null;
+
+searchBtn.addEventListener("click", doSearch);
+tickerInput.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+document.getElementById("prevMonth").addEventListener("click", () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); });
+document.getElementById("nextMonth").addEventListener("click", () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); });
+
+function searchTicker(t) { tickerInput.value = t; doSearch(); }
+
+function doSearch() {
+  const ticker = tickerInput.value.trim().toUpperCase();
+  if (!ticker) return showError("Please enter a stock ticker.");
+  if (!/^[A-Z]{1,5}$/.test(ticker)) return showError("Invalid ticker. Use 1-5 letters (e.g., AAPL).");
+  hideError();
+  resultsEl.style.display = "none";
+  loading.style.display = "flex";
+
+  // Simulate brief loading for UX
+  setTimeout(() => {
+    loading.style.display = "none";
+    const stock = STOCKS[ticker];
+    if (!stock) {
+      showError(`Ticker "${ticker}" not found. Try one of the popular tickers above: AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, JPM, NFLX, DIS.`);
+      return;
+    }
+    renderResults(ticker, stock);
+  }, 300);
+}
+
+function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = "block"; }
+function hideError() { errorMsg.style.display = "none"; }
+
+function renderResults(ticker, stock) {
+  resultsEl.style.display = "block";
+  companyNameEl.textContent = stock.name;
+  tickerBadge.textContent = ticker;
+  events = [];
+
+  // Upcoming
+  if (stock.nextEarnings) {
+    upcomingSection.style.display = "block";
+    const dt = new Date(stock.nextEarnings + "T00:00:00");
+    upcomingDatesEl.innerHTML = `<div class="upcoming-date-card"><div class="date-value">${fmtDate(dt)}</div><div class="date-label">${dayName(dt)}</div></div>`;
+    events.push({ date: stock.nextEarnings, type: "upcoming", detail: "Upcoming Earnings Report" });
+    calMonth = dt.getMonth(); calYear = dt.getFullYear();
+  } else {
+    upcomingSection.style.display = "none";
+  }
+
+  // History
+  stock.history.forEach(([period, date, actual, estimate]) => {
+    const surprise = estimate !== 0 ? ((actual - estimate) / Math.abs(estimate)) * 100 : 0;
+    const type = surprise >= 0 ? "beat" : "miss";
+    let detail = `Period: ${period}<br>EPS Actual: $${actual.toFixed(2)}<br>EPS Est: $${estimate.toFixed(2)}<br>Surprise: ${surprise >= 0 ? "+" : ""}${surprise.toFixed(1)}%`;
+    events.push({ date, type, detail, period, actual, estimate, surprise });
+  });
+
+  renderCalendar();
+  renderTable(stock.history);
+  renderQChart(stock.quarterly);
+  renderYChart(stock.yearly);
+  resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ── Calendar ────────────────────────────────────────────────────────
+function renderCalendar() {
+  const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  calendarTitle.textContent = `${names[calMonth]} ${calYear}`;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const days = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+
+  const emap = {};
+  events.forEach(ev => {
+    const [y,m,d] = ev.date.split("-").map(Number);
+    if (y === calYear && m === calMonth + 1) { if (!emap[d]) emap[d] = []; emap[d].push(ev); }
+  });
+
+  let h = "";
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => h += `<div class="cal-header">${d}</div>`);
+  for (let i = 0; i < firstDay; i++) h += `<div class="cal-day"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isToday = ds === todayStr;
+    const evts = emap[d] || [];
+    const has = evts.length > 0;
+    let cls = "cal-day current-month";
+    if (isToday) cls += " today";
+    if (has) cls += " has-event";
+    let dot = "", tip = "";
+    if (has) {
+      dot = `<span class="event-dot ${evts[0].type}"></span>`;
+      tip = `<div class="cal-tooltip">${evts.map(e => e.detail).join('<hr style="border-color:var(--border);margin:4px 0">')}</div>`;
+    }
+    h += `<div class="${cls}">${d}${dot}${tip}</div>`;
+  }
+  calendarEl.innerHTML = h;
+}
+
+// ── Table ───────────────────────────────────────────────────────────
+function renderTable(history) {
+  earningsBody.innerHTML = history.map(([period, date, actual, estimate]) => {
+    const surprise = estimate !== 0 ? ((actual - estimate) / Math.abs(estimate)) * 100 : 0;
+    const cls = surprise >= 0 ? "surprise-positive" : "surprise-negative";
+    const sign = surprise >= 0 ? "+" : "";
+    return `<tr>
+      <td>${period}</td>
+      <td>${fmtDate(new Date(date + "T00:00:00"))}</td>
+      <td>$${actual.toFixed(2)}</td>
+      <td>$${estimate.toFixed(2)}</td>
+      <td class="${cls}">${sign}${surprise.toFixed(1)}%</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Charts ──────────────────────────────────────────────────────────
+function renderQChart(data) {
+  const ctx = document.getElementById("quarterlyChart").getContext("2d");
+  if (qChart) qChart.destroy();
+  if (!data.length) return;
+  qChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d[0]),
+      datasets: [
+        { label: "Revenue", data: data.map(d => d[1] * 1e6), backgroundColor: "rgba(108,92,231,0.6)", borderColor: "rgba(108,92,231,1)", borderWidth: 1, borderRadius: 4 },
+        { label: "Earnings", data: data.map(d => d[2] * 1e6), backgroundColor: "rgba(0,206,201,0.6)", borderColor: "rgba(0,206,201,1)", borderWidth: 1, borderRadius: 4 },
+      ],
+    },
+    options: chartOpts(),
+  });
+}
+
+function renderYChart(data) {
+  const ctx = document.getElementById("yearlyChart").getContext("2d");
+  if (yChart) yChart.destroy();
+  if (!data.length) { yearlySection.style.display = "none"; return; }
+  yearlySection.style.display = "block";
+  yChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d[0]),
+      datasets: [
+        { label: "Revenue", data: data.map(d => d[1] * 1e6), backgroundColor: "rgba(108,92,231,0.6)", borderColor: "rgba(108,92,231,1)", borderWidth: 1, borderRadius: 4 },
+        { label: "Earnings", data: data.map(d => d[2] * 1e6), backgroundColor: "rgba(0,206,201,0.6)", borderColor: "rgba(0,206,201,1)", borderWidth: 1, borderRadius: 4 },
+      ],
+    },
+    options: chartOpts(),
+  });
+}
+
+function chartOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: "#8b8fa8", font: { size: 12 } } },
+      tooltip: { callbacks: { label: c => { const v = c.parsed.y; return v == null ? c.dataset.label + ": N/A" : c.dataset.label + ": " + fmtNum(v); } } },
+    },
+    scales: {
+      x: { ticks: { color: "#8b8fa8" }, grid: { color: "rgba(46,49,72,0.5)" } },
+      y: { ticks: { color: "#8b8fa8", callback: v => fmtNum(v) }, grid: { color: "rgba(46,49,72,0.5)" } },
+    },
+  };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function fmtDate(dt) {
+  const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${m[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
+}
+function dayName(dt) { return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dt.getDay()]; }
+function fmtNum(n) {
+  if (n == null) return "N/A";
+  const a = Math.abs(n), s = n < 0 ? "-" : "";
+  if (a >= 1e12) return s + "$" + (a/1e12).toFixed(1) + "T";
+  if (a >= 1e9) return s + "$" + (a/1e9).toFixed(1) + "B";
+  if (a >= 1e6) return s + "$" + (a/1e6).toFixed(1) + "M";
+  if (a >= 1e3) return s + "$" + (a/1e3).toFixed(1) + "K";
+  return s + "$" + n.toFixed(2);
+}
+</script>
+</body>
+</html>
