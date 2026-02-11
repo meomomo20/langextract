@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>US Stock Earnings Calendar</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>US Stock Earnings Calendar</h1>
+      <p class="subtitle">Search a stock ticker to view quarterly &amp; annual earnings report dates</p>
+    </header>
+
+    <!-- Search -->
+    <div class="search-bar">
+      <input
+        type="text"
+        id="tickerInput"
+        placeholder="Enter stock ticker (e.g., AAPL, MSFT, GOOGL)"
+        maxlength="5"
+        autocomplete="off"
+      >
+      <button id="searchBtn">Search</button>
+    </div>
+    <div id="errorMsg" class="error-msg" style="display:none;"></div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display:none;">
+      <div class="spinner"></div>
+      <span>Fetching earnings data...</span>
+    </div>
+
+    <!-- Results -->
+    <div id="results" style="display:none;">
+      <!-- Company Info -->
+      <div class="company-info">
+        <h2 id="companyName"></h2>
+        <span id="tickerBadge" class="ticker-badge"></span>
+      </div>
+
+      <!-- Upcoming Earnings -->
+      <div id="upcomingSection" class="section upcoming-section" style="display:none;">
+        <h3>Upcoming Earnings Date</h3>
+        <div id="upcomingDates" class="upcoming-dates"></div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="section">
+        <div class="calendar-controls">
+          <button id="prevMonth" class="cal-nav">&larr;</button>
+          <h3 id="calendarTitle" class="cal-title"></h3>
+          <button id="nextMonth" class="cal-nav">&rarr;</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <div class="calendar-legend">
+          <span class="legend-item"><span class="dot dot-upcoming"></span> Upcoming Earnings</span>
+          <span class="legend-item"><span class="dot dot-beat"></span> Beat Estimate</span>
+          <span class="legend-item"><span class="dot dot-miss"></span> Missed Estimate</span>
+          <span class="legend-item"><span class="dot dot-history"></span> Reported (No Surprise Data)</span>
+        </div>
+      </div>
+
+      <!-- Earnings History Table -->
+      <div class="section">
+        <h3>Quarterly Earnings History</h3>
+        <div class="table-wrap">
+          <table id="earningsTable" class="earnings-table">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Report Date</th>
+                <th>EPS Actual</th>
+                <th>EPS Estimate</th>
+                <th>Surprise %</th>
+              </tr>
+            </thead>
+            <tbody id="earningsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Financials Charts -->
+      <div class="section">
+        <h3>Quarterly Financials</h3>
+        <div class="chart-container">
+          <canvas id="quarterlyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="section" id="yearlySection" style="display:none;">
+        <h3>Annual Financials</h3>
+        <div class="chart-container">
+          <canvas id="yearlyChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
