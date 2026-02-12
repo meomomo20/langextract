@@ -18,16 +18,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .header h1 { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, var(--accent-light), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .subtitle { color: var(--text-dim); font-size: .9rem; margin-top: 4px; }
 
-/* API key bar */
-.api-bar { display: flex; gap: 8px; max-width: 520px; margin: 0 auto 20px; align-items: center; }
-.api-bar label { color: var(--text-dim); font-size: .8rem; white-space: nowrap; }
-.api-bar input { flex: 1; padding: 8px 12px; font-size: .85rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); outline: none; font-family: monospace; }
-.api-bar input:focus { border-color: var(--accent); }
-.api-bar button { padding: 8px 16px; font-size: .85rem; font-weight: 600; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer; }
-.api-bar button:hover { background: #5b4bd5; }
-.api-bar-hint { text-align: center; color: var(--text-dim); font-size: .75rem; margin-top: -12px; margin-bottom: 16px; }
-.api-bar-hint a { color: var(--accent-light); }
-
 /* Sections */
 .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
 .section h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 14px; color: var(--accent-light); }
@@ -38,37 +28,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .loading { text-align: center; padding: 30px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 10px; }
 .spinner { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* Calendar */
-.calendar-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
-.cal-nav { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem; padding: 6px 14px; cursor: pointer; }
-.cal-nav:hover { background: var(--border); }
-.cal-title { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 0; min-width: 160px; text-align: center; }
-.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-header { text-align: center; font-size: .7rem; font-weight: 600; color: var(--text-dim); padding: 6px 0; text-transform: uppercase; letter-spacing: .5px; }
-.cal-day { position: relative; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .82rem; border-radius: 8px; color: var(--text-dim); transition: background .15s; gap: 1px; }
-.cal-day.current-month { color: var(--text); }
-.cal-day.today { border: 2px solid var(--accent); font-weight: 700; }
-.cal-day.has-event { cursor: pointer; font-weight: 700; background: var(--surface2); }
-.cal-day.has-event:hover { background: var(--border); }
-.cal-day.selected { background: var(--accent) !important; color: #fff; }
-.event-count { font-size: .55rem; background: var(--accent); color: #fff; border-radius: 6px; padding: 0 4px; line-height: 1.4; font-weight: 700; }
-.cal-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: .72rem; white-space: nowrap; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,.4); color: var(--text); line-height: 1.4; }
-.cal-day.has-event:hover .cal-tooltip { display: block; }
-.calendar-legend { display: flex; gap: 14px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--text-dim); }
-.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-.dot-bmo { background: var(--accent-light); }
-.dot-amc { background: var(--green); }
-.dot-tbd { background: var(--orange); }
-
-/* Day detail */
-.day-detail { background: linear-gradient(135deg, #1a1d2f, #1f2340); border-color: var(--accent); }
-.table-wrap { overflow-x: auto; }
-.earnings-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.earnings-table th { text-align: left; padding: 8px 10px; font-weight: 600; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; }
-.earnings-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
-.earnings-table tbody tr:hover { background: var(--surface2); }
 
 /* Search */
 .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -87,6 +46,53 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .surprise-negative { color: var(--red); font-weight: 600; }
 .chart-container { position: relative; height: 260px; }
 
+/* Table */
+.table-wrap { overflow-x: auto; }
+.earnings-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.earnings-table th { text-align: left; padding: 8px 10px; font-weight: 600; color: var(--text-dim); border-bottom: 1px solid var(--border); font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; }
+.earnings-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.earnings-table tbody tr:hover { background: var(--surface2); }
+
+/* Calendar */
+.calendar-controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
+.cal-nav { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem; padding: 6px 14px; cursor: pointer; }
+.cal-nav:hover { background: var(--border); }
+.cal-title { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 0; min-width: 160px; text-align: center; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-header { text-align: center; font-size: .7rem; font-weight: 600; color: var(--text-dim); padding: 6px 0; text-transform: uppercase; letter-spacing: .5px; }
+.cal-day { position: relative; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .82rem; border-radius: 8px; color: var(--text-dim); transition: background .15s; gap: 1px; }
+.cal-day.current-month { color: var(--text); }
+.cal-day.today { border: 2px solid var(--accent); font-weight: 700; }
+.cal-day.has-event { cursor: pointer; font-weight: 700; background: var(--surface2); }
+.cal-day.has-event:hover { background: var(--border); }
+.cal-day.selected { background: var(--accent) !important; color: #fff; }
+.cal-day.holiday .day-num { color: var(--red); }
+.holiday-label { font-size: .42rem; color: var(--red); line-height: 1.1; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.event-count { font-size: .55rem; background: var(--accent); color: #fff; border-radius: 6px; padding: 0 4px; line-height: 1.4; font-weight: 700; }
+.cal-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: .72rem; white-space: nowrap; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,.4); color: var(--text); line-height: 1.4; }
+.cal-day.has-event:hover .cal-tooltip { display: block; }
+.calendar-legend { display: flex; gap: 14px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--text-dim); }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-bmo { background: var(--accent-light); }
+.dot-amc { background: var(--green); }
+.dot-tbd { background: var(--orange); }
+.dot-holiday { background: var(--red); }
+
+/* Day detail */
+.day-detail { background: linear-gradient(135deg, #1a1d2f, #1f2340); border-color: var(--accent); }
+
+/* API key bar (bottom) */
+.api-section { margin-top: 24px; }
+.api-bar { display: flex; gap: 8px; max-width: 520px; margin: 0 auto 8px; align-items: center; }
+.api-bar label { color: var(--text-dim); font-size: .8rem; white-space: nowrap; }
+.api-bar input { flex: 1; padding: 8px 12px; font-size: .85rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); outline: none; font-family: monospace; }
+.api-bar input:focus { border-color: var(--accent); }
+.api-bar button { padding: 8px 16px; font-size: .85rem; font-weight: 600; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer; }
+.api-bar button:hover { background: #5b4bd5; }
+.api-bar-hint { text-align: center; color: var(--text-dim); font-size: .75rem; }
+.api-bar-hint a { color: var(--accent-light); }
+
 @media (max-width: 600px) {
   .app { padding: 12px 10px 40px; }
   .header h1 { font-size: 1.3rem; }
@@ -95,6 +101,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
   .search-bar button { width: 100%; }
   .section { padding: 14px; }
   .cal-day { font-size: .7rem; }
+  .holiday-label { font-size: .38rem; }
   .chart-container { height: 200px; }
 }
 </style>
@@ -106,45 +113,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     <p class="subtitle">Upcoming earnings dates across the market — live from Finnhub</p>
   </header>
 
-  <!-- API Key -->
-  <div class="api-bar">
-    <label>Finnhub Key:</label>
-    <input type="text" id="apiKeyInput" placeholder="Paste your free Finnhub API key">
-    <button id="apiKeyBtn">Load</button>
-  </div>
-  <p class="api-bar-hint">Free key at <a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> — saved in your browser</p>
-
-  <div id="calendarError" class="error-msg" style="display:none;"></div>
-
-  <!-- Calendar -->
-  <div class="section">
-    <div class="calendar-controls">
-      <button id="prevMonth" class="cal-nav">&larr;</button>
-      <h3 id="calendarTitle" class="cal-title"></h3>
-      <button id="nextMonth" class="cal-nav">&rarr;</button>
-    </div>
-    <div id="calendarLoading" class="loading" style="display:none;"><div class="spinner"></div><span>Loading...</span></div>
-    <div class="calendar" id="calendar"></div>
-    <div class="calendar-legend">
-      <span class="legend-item"><span class="dot dot-bmo"></span> Before Open</span>
-      <span class="legend-item"><span class="dot dot-amc"></span> After Close</span>
-      <span class="legend-item"><span class="dot dot-tbd"></span> Time TBD</span>
-    </div>
-    <div id="sourceInfo" class="source-info" style="display:none;"></div>
-  </div>
-
-  <!-- Day detail -->
-  <div id="dayDetail" class="section day-detail" style="display:none;">
-    <h3 id="dayDetailTitle"></h3>
-    <div class="table-wrap">
-      <table class="earnings-table">
-        <thead><tr><th>Symbol</th><th>Time</th><th>EPS Est.</th><th>Rev. Est.</th></tr></thead>
-        <tbody id="dayDetailBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Ticker lookup -->
+  <!-- 1. Ticker search (TOP) -->
   <div class="section">
     <h3>Look Up a Ticker</h3>
     <div class="search-bar">
@@ -175,12 +144,114 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
       </div>
     </div>
   </div>
+
+  <!-- 2. Calendar (MIDDLE) -->
+  <div id="calendarError" class="error-msg" style="display:none;"></div>
+  <div class="section">
+    <div class="calendar-controls">
+      <button id="prevMonth" class="cal-nav">&larr;</button>
+      <h3 id="calendarTitle" class="cal-title"></h3>
+      <button id="nextMonth" class="cal-nav">&rarr;</button>
+    </div>
+    <div id="calendarLoading" class="loading" style="display:none;"><div class="spinner"></div><span>Loading...</span></div>
+    <div class="calendar" id="calendar"></div>
+    <div class="calendar-legend">
+      <span class="legend-item"><span class="dot dot-bmo"></span> Before Open</span>
+      <span class="legend-item"><span class="dot dot-amc"></span> After Close</span>
+      <span class="legend-item"><span class="dot dot-tbd"></span> Time TBD</span>
+      <span class="legend-item"><span class="dot dot-holiday"></span> US Holiday</span>
+    </div>
+    <div id="sourceInfo" class="source-info" style="display:none;"></div>
+  </div>
+
+  <!-- Day detail -->
+  <div id="dayDetail" class="section day-detail" style="display:none;">
+    <h3 id="dayDetailTitle"></h3>
+    <div class="table-wrap">
+      <table class="earnings-table">
+        <thead><tr><th>Symbol</th><th>Time</th><th>EPS Est.</th><th>Rev. Est.</th></tr></thead>
+        <tbody id="dayDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. API Key (BOTTOM) -->
+  <div class="section api-section">
+    <h3>Finnhub API Key</h3>
+    <div class="api-bar">
+      <label>Key:</label>
+      <input type="text" id="apiKeyInput" placeholder="Paste your free Finnhub API key">
+      <button id="apiKeyBtn">Save & Load</button>
+    </div>
+    <p class="api-bar-hint">Free key at <a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> — saved in your browser automatically</p>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function() {
   "use strict";
+
+  // ── US Holidays ───────────────────────────────────────────────────
+  // Returns { "YYYY-MM-DD": "Holiday Name", ... } for a given year
+  function getUSHolidays(year) {
+    const h = {};
+    function add(m, d, name) { h[`${year}-${pad(m)}-${pad(d)}`] = name; }
+
+    // Fixed-date holidays
+    add(1, 1, "New Year's Day");
+    add(6, 19, "Juneteenth");
+    add(7, 4, "Independence Day");
+    add(11, 11, "Veterans Day");
+    add(12, 25, "Christmas Day");
+
+    // Nth weekday of month: 0=Sun..6=Sat
+    function nthWeekday(month, weekday, n) {
+      const first = new Date(year, month - 1, 1).getDay();
+      let day = 1 + ((weekday - first + 7) % 7) + (n - 1) * 7;
+      return day;
+    }
+    // Last weekday of month
+    function lastWeekday(month, weekday) {
+      const last = new Date(year, month, 0).getDate();
+      const lastDow = new Date(year, month - 1, last).getDay();
+      return last - ((lastDow - weekday + 7) % 7);
+    }
+
+    // MLK Day: 3rd Monday of January
+    add(1, nthWeekday(1, 1, 3), "MLK Day");
+    // Presidents' Day: 3rd Monday of February
+    add(2, nthWeekday(2, 1, 3), "Presidents' Day");
+    // Memorial Day: Last Monday of May
+    add(5, lastWeekday(5, 1), "Memorial Day");
+    // Labor Day: 1st Monday of September
+    add(9, nthWeekday(9, 1, 1), "Labor Day");
+    // Columbus Day: 2nd Monday of October
+    add(10, nthWeekday(10, 1, 2), "Columbus Day");
+    // Thanksgiving: 4th Thursday of November
+    add(11, nthWeekday(11, 4, 4), "Thanksgiving");
+    // Day after Thanksgiving (market closed)
+    add(11, nthWeekday(11, 4, 4) + 1, "Black Friday");
+
+    // Easter (for Good Friday - market closed)
+    function easter(y) {
+      const a = y % 19, b = Math.floor(y/100), c = y % 100;
+      const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+      const g = Math.floor((b-f+1)/3), hh = (19*a+b-d-g+15) % 30;
+      const i = Math.floor(c/4), k = c % 4;
+      const l = (32+2*e+2*i-hh-k) % 7;
+      const m = Math.floor((a+11*hh+22*l)/451);
+      const month = Math.floor((hh+l-7*m+114)/31);
+      const day = ((hh+l-7*m+114) % 31) + 1;
+      return { month, day };
+    }
+    const e = easter(year);
+    // Good Friday = Easter Sunday - 2
+    const gf = new Date(year, e.month - 1, e.day - 2);
+    add(gf.getMonth() + 1, gf.getDate(), "Good Friday");
+
+    return h;
+  }
 
   // ── State ─────────────────────────────────────────────────────────
   let calMonth = new Date().getMonth();
@@ -236,7 +307,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 
     if (!key) {
       calEvents = [];
-      calError.textContent = "Enter your Finnhub API key above to load live earnings data.";
+      calError.textContent = "Enter your Finnhub API key at the bottom of the page to load live earnings data.";
       calError.style.display = "block";
       renderCalendar();
       return;
@@ -255,7 +326,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
       const resp = await fetch(url);
       calLoading.style.display = "none";
       if (!resp.ok) {
-        const txt = await resp.text();
         calError.textContent = resp.status === 401 ? "Invalid API key." : `Finnhub error: ${resp.status}`;
         calError.style.display = "block";
         calEvents = [];
@@ -294,7 +364,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     const days = new Date(calYear, calMonth+1, 0).getDate();
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const holidays = getUSHolidays(calYear);
 
+    // Group earnings events by day
     const emap = {};
     calEvents.forEach(ev => {
       if (!ev.date) return;
@@ -314,18 +386,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
       const isToday = ds === todayStr;
       const evts = emap[d] || [];
       const n = evts.length;
+      const hol = holidays[ds] || null;
+
       let cls = "cal-day current-month";
       if (isToday) cls += " today";
       if (n > 0) cls += " has-event";
+      if (hol) cls += " holiday";
 
-      let badge = "", tip = "";
+      let inner = `<span class="day-num">${d}</span>`;
+
+      if (hol) {
+        inner += `<span class="holiday-label">${hol}</span>`;
+      }
+
       if (n > 0) {
-        badge = `<span class="event-count">${n}</span>`;
+        inner += `<span class="event-count">${n}</span>`;
         const preview = evts.slice(0, 5).map(e => e.symbol).join(", ");
         const more = n > 5 ? `, +${n-5} more` : "";
-        tip = `<div class="cal-tooltip">${preview}${more}</div>`;
+        inner += `<div class="cal-tooltip">${preview}${more}</div>`;
       }
-      h += `<div class="${cls}" data-date="${ds}">${d}${badge}${tip}</div>`;
+
+      h += `<div class="${cls}" data-date="${ds}">${inner}</div>`;
     }
     calendarEl.innerHTML = h;
 
@@ -335,7 +416,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
   }
 
   function showDayDetail(dateStr) {
-    // Highlight selected day
     calendarEl.querySelectorAll(".cal-day").forEach(c => c.classList.remove("selected"));
     const sel = calendarEl.querySelector(`[data-date="${dateStr}"]`);
     if (sel) sel.classList.add("selected");
@@ -344,7 +424,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     if (!evts.length) { dayDetail.style.display = "none"; return; }
 
     const dt = new Date(dateStr + "T00:00:00");
-    dayDetailTitle.textContent = `Earnings on ${fmtDate(dt)} (${evts.length} companies)`;
+    const holidays = getUSHolidays(calYear);
+    const hol = holidays[dateStr];
+    let title = `Earnings on ${fmtDate(dt)} (${evts.length} companies)`;
+    if (hol) title += ` — ${hol}`;
+    dayDetailTitle.textContent = title;
 
     dayDetailBody.innerHTML = evts
       .sort((a,b) => (a.symbol||"").localeCompare(b.symbol||""))
@@ -359,7 +443,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     dayDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  // ── Ticker search (Yahoo Finance) ─────────────────────────────────
+  // ── Ticker search ─────────────────────────────────────────────────
   const tickerInput = document.getElementById("tickerInput");
   const searchBtn = document.getElementById("searchBtn");
   const tickerError = document.getElementById("tickerError");
@@ -380,17 +464,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     tickerResults.style.display = "none";
     tickerLoading.style.display = "flex";
 
-    // Use Finnhub for ticker lookup too (symbol profile + earnings)
     const key = getApiKey();
     if (!key) {
       tickerLoading.style.display = "none";
-      tickerError.textContent = "Set your Finnhub API key first.";
+      tickerError.textContent = "Set your Finnhub API key first (bottom of page).";
       tickerError.style.display = "block";
       return;
     }
 
     try {
-      // Fetch company profile and earnings in parallel
       const [profileResp, earningsResp] = await Promise.all([
         fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${key}`),
         fetch(`https://finnhub.io/api/v1/stock/earnings?symbol=${ticker}&token=${key}`),
@@ -426,7 +508,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     document.getElementById("companyName").textContent = profile.name || ticker;
     document.getElementById("tickerBadge").textContent = ticker;
 
-    // Find upcoming earnings from calendar data
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = calEvents.filter(e => e.symbol === ticker && e.date >= today).map(e => e.date);
     const upSec = document.getElementById("upcomingSection");
@@ -437,7 +518,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
       upSec.style.display = "none";
     }
 
-    // Earnings history (Finnhub returns last 4 quarters)
     const body = document.getElementById("earningsBody");
     if (!earnings.length) {
       body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);">No earnings history</td></tr>';
@@ -459,7 +539,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
       }).join("");
     }
 
-    // Hide charts for now (Finnhub free doesn't provide revenue data in earnings endpoint)
     document.getElementById("quarterlySection").style.display = "none";
     document.getElementById("yearlySection").style.display = "none";
   }
