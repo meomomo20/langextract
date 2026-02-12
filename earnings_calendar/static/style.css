@@ -88,25 +88,11 @@ body {
 .search-bar button:hover { background: #5b4bd5; }
 .search-bar button:active { transform: scale(.97); }
 
-/* === Limit select === */
-.search-bar select {
-  padding: 12px 12px;
-  font-size: .9rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  cursor: pointer;
-  transition: border-color .2s;
-}
-.search-bar select:focus { border-color: var(--accent); }
-
 /* === Source info === */
 .source-info {
   text-align: center;
   color: var(--text-dim);
-  margin-bottom: 12px;
+  margin-top: 12px;
   font-size: .8rem;
 }
 
@@ -175,32 +161,17 @@ body {
   color: var(--accent-light);
 }
 
-/* === Upcoming Earnings === */
-.upcoming-section {
+/* === Upcoming inline === */
+.upcoming-section-inline {
+  margin-bottom: 12px;
+  color: var(--accent-light);
+  font-size: .95rem;
+}
+
+/* === Day detail panel === */
+.day-detail-section {
   background: linear-gradient(135deg, #1a1d2f, #1f2340);
   border-color: var(--accent);
-}
-.upcoming-dates {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.upcoming-date-card {
-  background: var(--surface2);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 14px 22px;
-  text-align: center;
-}
-.upcoming-date-card .date-value {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--accent-light);
-}
-.upcoming-date-card .date-label {
-  font-size: .8rem;
-  color: var(--text-dim);
-  margin-top: 2px;
 }
 
 /* === Calendar === */
@@ -249,12 +220,14 @@ body {
   position: relative;
   aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: .85rem;
   border-radius: 8px;
   color: var(--text-dim);
   transition: background .15s;
+  gap: 2px;
 }
 .cal-day.current-month { color: var(--text); }
 .cal-day.today {
@@ -264,18 +237,18 @@ body {
 .cal-day.has-event {
   cursor: pointer;
   font-weight: 700;
+  background: var(--surface2);
 }
-.cal-day.has-event:hover { background: var(--surface2); }
-.cal-day .event-dot {
-  position: absolute;
-  bottom: 4px;
-  width: 6px; height: 6px;
-  border-radius: 50%;
+.cal-day.has-event:hover { background: var(--border); }
+.event-count {
+  font-size: .6rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 5px;
+  line-height: 1.5;
+  font-weight: 700;
 }
-.cal-day .event-dot.upcoming { background: var(--accent-light); }
-.cal-day .event-dot.beat { background: var(--green); }
-.cal-day .event-dot.miss { background: var(--red); }
-.cal-day .event-dot.neutral { background: var(--orange); }
 
 /* Calendar tooltip */
 .cal-tooltip {
@@ -318,8 +291,7 @@ body {
   display: inline-block;
 }
 .dot-upcoming { background: var(--accent-light); }
-.dot-beat { background: var(--green); }
-.dot-miss { background: var(--red); }
+.dot-amc { background: var(--green); }
 .dot-history { background: var(--orange); }
 
 /* === Table === */
