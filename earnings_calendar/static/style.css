@@ -88,6 +88,28 @@ body {
 .search-bar button:hover { background: #5b4bd5; }
 .search-bar button:active { transform: scale(.97); }
 
+/* === Limit select === */
+.search-bar select {
+  padding: 12px 12px;
+  font-size: .9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.search-bar select:focus { border-color: var(--accent); }
+
+/* === Source info === */
+.source-info {
+  text-align: center;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  font-size: .8rem;
+}
+
 /* === Error === */
 .error-msg {
   text-align: center;

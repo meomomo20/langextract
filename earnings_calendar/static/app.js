@@ -5,8 +5,10 @@
 
   // DOM refs
   const tickerInput = document.getElementById("tickerInput");
+  const limitSelect = document.getElementById("limitSelect");
   const searchBtn = document.getElementById("searchBtn");
   const errorMsg = document.getElementById("errorMsg");
+  const sourceInfo = document.getElementById("sourceInfo");
   const loading = document.getElementById("loading");
   const results = document.getElementById("results");
   const companyNameEl = document.getElementById("companyName");
@@ -41,7 +43,10 @@
     loading.style.display = "flex";
 
     try {
-      const resp = await fetch(`/api/earnings?ticker=${encodeURIComponent(ticker)}`);
+      const limit = limitSelect.value;
+      const resp = await fetch(
+        `/api/earnings?ticker=${encodeURIComponent(ticker)}&limit=${limit}`
+      );
       const data = await resp.json();
       if (!resp.ok) {
         showError(data.error || "Failed to fetch data.");
@@ -49,6 +54,7 @@
         return;
       }
       loading.style.display = "none";
+      showSourceInfo(data);
       renderResults(data);
     } catch (err) {
       loading.style.display = "none";
@@ -62,6 +68,19 @@
   }
   function hideError() {
     errorMsg.style.display = "none";
+    sourceInfo.style.display = "none";
+  }
+  function showSourceInfo(data) {
+    const count = (data.earningsHistory || []).length;
+    const maxLimit = data.maxLimit || 4;
+    const source = data.source || "yahoo";
+    let label = source === "alphavantage" ? "Alpha Vantage" : source === "demo" ? "Demo" : "Yahoo Finance";
+    let note = `Showing ${count} quarter(s) via ${label}.`;
+    if (maxLimit <= 4 && source !== "demo") {
+      note += " Set ALPHAVANTAGE_API_KEY for up to 40 quarters.";
+    }
+    sourceInfo.textContent = note;
+    sourceInfo.style.display = "block";
   }
 
   // --- Render Results ---

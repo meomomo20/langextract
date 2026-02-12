@@ -23,8 +23,16 @@
         maxlength="5"
         autocomplete="off"
       >
+      <select id="limitSelect" title="Quarters of earnings history">
+        <option value="4">4 quarters</option>
+        <option value="8">8 quarters</option>
+        <option value="12">12 quarters</option>
+        <option value="20" selected>20 quarters</option>
+        <option value="40">40 quarters</option>
+      </select>
       <button id="searchBtn">Search</button>
     </div>
+    <div id="sourceInfo" class="source-info" style="display:none;"></div>
     <div id="errorMsg" class="error-msg" style="display:none;"></div>
 
     <!-- Loading -->

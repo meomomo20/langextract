@@ -6,6 +6,11 @@ on an interactive calendar.
 Usage:
     python -m earnings_calendar.app          # production
     python -m earnings_calendar.app --demo   # demo mode with sample data
+
+Environment variables:
+    ALPHAVANTAGE_API_KEY  Free API key from https://www.alphavantage.co/support/#api-key
+                          Enables fetching 20+ quarters of earnings history (vs 4 from Yahoo).
+    DEMO_MODE=1           Run with sample data (no network calls).
 """
 
 import json
@@ -22,6 +27,14 @@ app = Flask(__name__)
 # Enable demo mode via flag or env var (useful when Yahoo API is unreachable)
 DEMO_MODE = "--demo" in sys.argv or os.environ.get("DEMO_MODE", "") == "1"
 
+# Alpha Vantage API key — free at https://www.alphavantage.co/support/#api-key
+# Provides 20+ quarters of earnings history (Yahoo Finance only returns 4).
+ALPHAVANTAGE_API_KEY = os.environ.get("ALPHAVANTAGE_API_KEY", "")
+
+# Default and maximum number of quarters returned
+DEFAULT_QUARTER_LIMIT = 4
+MAX_QUARTER_LIMIT = 40
+
 _YAHOO_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -36,6 +49,26 @@ _TICKER_RE = re.compile(r"^[A-Z]{1,5}$")
 # ── Demo / sample data ──────────────────────────────────────────────
 
 
+def _generate_extended_eps(base_eps, num_quarters=20):
+    """Generate extended EPS data going back multiple quarters."""
+    extended = list(base_eps)
+    # Generate additional historical quarters from the last known values
+    if len(extended) >= 2:
+        last_actual = extended[-1][1]
+        last_estimate = extended[-1][2]
+        for i in range(len(extended), num_quarters):
+            year = 2024 - (i // 4)
+            quarter = 4 - (i % 4)
+            period = f"{quarter}Q{year}"
+            # Slightly vary EPS going back in time (gradual decline)
+            decay = 0.97 ** (i - len(base_eps) + 1)
+            actual = round(last_actual * decay, 2)
+            estimate = round(last_estimate * decay, 2)
+            surprise = round((actual - estimate) / max(abs(estimate), 0.01), 4)
+            extended.append((period, actual, estimate, surprise))
+    return extended
+
+
 def _demo_data(ticker: str) -> dict:
     """Return realistic sample data so the UI can be exercised offline."""
     today = datetime.utcnow()
@@ -48,6 +81,10 @@ def _demo_data(ticker: str) -> dict:
                 ("3Q2024", 1.40, 1.35, 0.0370),
                 ("2Q2024", 1.53, 1.50, 0.0200),
                 ("1Q2024", 2.18, 2.10, 0.0381),
+                ("4Q2023", 2.10, 2.09, 0.0048),
+                ("3Q2023", 1.46, 1.39, 0.0504),
+                ("2Q2023", 1.26, 1.19, 0.0588),
+                ("1Q2023", 1.88, 1.94, -0.0309),
             ],
             "qRevenue": [
                 ("4Q2024", 124_300_000_000, 36_330_000_000),
@@ -70,6 +107,10 @@ def _demo_data(ticker: str) -> dict:
                 ("1Q2025", 3.30, 3.10, 0.0645),
                 ("4Q2024", 2.95, 2.93, 0.0068),
                 ("3Q2024", 2.94, 2.82, 0.0426),
+                ("2Q2024", 2.93, 2.78, 0.0540),
+                ("1Q2024", 2.94, 2.82, 0.0426),
+                ("4Q2023", 2.69, 2.55, 0.0549),
+                ("3Q2023", 2.45, 2.35, 0.0426),
             ],
             "qRevenue": [
                 ("2Q2025", 69_600_000_000, 24_100_000_000),
@@ -92,6 +133,10 @@ def _demo_data(ticker: str) -> dict:
                 ("3Q2024", 2.12, 1.85, 0.1459),
                 ("2Q2024", 1.89, 1.85, 0.0216),
                 ("1Q2024", 1.89, 1.51, 0.2517),
+                ("4Q2023", 1.64, 1.59, 0.0314),
+                ("3Q2023", 1.55, 1.45, 0.0690),
+                ("2Q2023", 1.44, 1.34, 0.0746),
+                ("1Q2023", 1.17, 1.07, 0.0935),
             ],
             "qRevenue": [
                 ("4Q2024", 96_469_000_000, 30_972_000_000),
@@ -133,6 +178,9 @@ def _demo_data(ticker: str) -> dict:
                 ("2021", 36_000_000_000, 4_800_000_000),
             ],
         }
+
+    # Extend EPS data to support higher limits in demo mode
+    info["eps"] = _generate_extended_eps(info["eps"], num_quarters=20)
 
     upcoming_date = (today + timedelta(days=info["upcomingDelta"])).strftime(
         "%Y-%m-%d"
@@ -185,6 +233,85 @@ def _fetch_yahoo_data(ticker: str) -> dict:
     resp = requests.get(url, headers=_YAHOO_HEADERS, timeout=15)
     resp.raise_for_status()
     return resp.json()
+
+
+# ── Alpha Vantage fetcher ────────────────────────────────────────────
+
+
+def _fetch_alphavantage_earnings(ticker: str, api_key: str) -> dict | None:
+    """Fetch earnings data from Alpha Vantage (free API, 20+ quarters).
+
+    Returns parsed earnings dict or None on failure.
+    API docs: https://www.alphavantage.co/documentation/#earnings
+    """
+    url = (
+        "https://www.alphavantage.co/query"
+        f"?function=EARNINGS&symbol={ticker}&apikey={api_key}"
+    )
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.exceptions.RequestException, ValueError):
+        return None
+
+    # Alpha Vantage returns {"Note": ...} when rate-limited
+    if "Note" in data or "Information" in data:
+        return None
+
+    quarterly = data.get("quarterlyEarnings", [])
+    annual = data.get("annualEarnings", [])
+
+    if not quarterly:
+        return None
+
+    history = []
+    for q in quarterly:
+        fiscal_end = q.get("fiscalDateEnding", "")
+        reported_date = q.get("reportedDate")
+        reported_eps = q.get("reportedEPS")
+        estimated_eps = q.get("estimatedEPS")
+        surprise_pct = q.get("surprisePercentage")
+
+        eps_actual = _safe_float(reported_eps)
+        eps_estimate = _safe_float(estimated_eps)
+        surprise = _safe_float(surprise_pct)
+
+        history.append(
+            {
+                "period": fiscal_end,
+                "quarter": None,
+                "reportDate": reported_date or fiscal_end,
+                "epsActual": eps_actual,
+                "epsEstimate": eps_estimate,
+                "surprisePct": round(surprise, 2) if surprise is not None else None,
+            }
+        )
+
+    yearly_earnings = []
+    for y in annual:
+        yearly_earnings.append(
+            {
+                "period": y.get("fiscalDateEnding", ""),
+                "reportedEPS": _safe_float(y.get("reportedEPS")),
+            }
+        )
+
+    return {
+        "earningsHistory": history,
+        "yearlyEarnings": yearly_earnings,
+    }
+
+
+def _safe_float(val):
+    """Convert a value to float, returning None if not possible."""
+    if val is None:
+        return None
+    try:
+        f = float(val)
+        return None if f != f else f  # NaN check
+    except (ValueError, TypeError):
+        return None
 
 
 def _ts_to_date(ts):
@@ -305,7 +432,13 @@ def index():
 
 @app.route("/api/earnings")
 def api_earnings():
-    """API endpoint to fetch earnings data for a stock ticker."""
+    """API endpoint to fetch earnings data for a stock ticker.
+
+    Query parameters:
+        ticker  — Stock ticker symbol (required, 1-5 letters).
+        limit   — Max quarters of earnings history to return (default 4, max 40).
+                   Set to a higher value when ALPHAVANTAGE_API_KEY is configured.
+    """
     ticker = request.args.get("ticker", "").strip().upper()
     if not ticker:
         return jsonify({"error": "Please provide a stock ticker."}), 400
@@ -322,15 +455,47 @@ def api_earnings():
             400,
         )
 
+    # Parse limit parameter
+    try:
+        limit = int(request.args.get("limit", DEFAULT_QUARTER_LIMIT))
+        limit = max(1, min(limit, MAX_QUARTER_LIMIT))
+    except (ValueError, TypeError):
+        limit = DEFAULT_QUARTER_LIMIT
+
     # Demo mode — return sample data
     if DEMO_MODE:
-        return jsonify(_demo_data(ticker))
+        data = _demo_data(ticker)
+        data["earningsHistory"] = data["earningsHistory"][:limit]
+        data["limit"] = limit
+        data["maxLimit"] = MAX_QUARTER_LIMIT
+        data["source"] = "demo"
+        return jsonify(data)
 
     try:
+        # Always fetch Yahoo for upcoming dates and company info
         raw = _fetch_yahoo_data(ticker)
         parsed = _parse_earnings(raw)
         if "error" in parsed:
             return jsonify(parsed), 404
+
+        source = "yahoo"
+
+        # If Alpha Vantage key is set and user wants more than 4 quarters,
+        # fetch extended history from Alpha Vantage
+        if ALPHAVANTAGE_API_KEY and limit > 4:
+            av_data = _fetch_alphavantage_earnings(
+                ticker, ALPHAVANTAGE_API_KEY
+            )
+            if av_data and av_data.get("earningsHistory"):
+                parsed["earningsHistory"] = av_data["earningsHistory"]
+                source = "alphavantage"
+
+        # Apply the limit
+        parsed["earningsHistory"] = parsed["earningsHistory"][:limit]
+        parsed["limit"] = limit
+        parsed["maxLimit"] = MAX_QUARTER_LIMIT if ALPHAVANTAGE_API_KEY else 4
+        parsed["source"] = source
+
         return jsonify(parsed)
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code == 404:
