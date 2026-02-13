@@ -81,6 +81,29 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .surprise-negative { color: var(--red); font-weight: 600; }
 .chart-container { position: relative; height: 260px; }
 
+/* ── Stock quote panel ──────────────────────────────────── */
+.quote-panel { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; padding: 18px 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.quote-price { font-size: 2rem; font-weight: 800; font-family: var(--mono); letter-spacing: -.02em; color: var(--text); }
+.quote-change { font-size: 1rem; font-weight: 700; font-family: var(--mono); }
+.quote-change.up { color: var(--green); }
+.quote-change.down { color: var(--red); }
+.quote-change.flat { color: var(--text-muted); }
+.quote-meta { display: flex; gap: 20px; margin-left: auto; flex-wrap: wrap; }
+.quote-meta-item { text-align: right; }
+.quote-meta-label { font-size: .62rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); line-height: 1; }
+.quote-meta-value { font-size: .88rem; font-weight: 600; font-family: var(--mono); color: var(--text-secondary); margin-top: 2px; }
+
+/* ── Company profile stats ──────────────────────────────── */
+.profile-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.profile-tag { padding: 4px 12px; border-radius: 4px; font-size: .7rem; font-weight: 500; background: var(--surface2); border: 1px solid var(--border); color: var(--text-secondary); }
+.profile-tag strong { color: var(--text); font-weight: 600; }
+
+/* ── Stats grid ─────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.stat-cell { padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+.stat-label { font-size: .62rem; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-bottom: 4px; }
+.stat-value { font-size: .95rem; font-weight: 700; font-family: var(--mono); color: var(--text); }
+
 /* ── Tables ──────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
 .earnings-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
@@ -154,6 +177,12 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
   .chart-container { height: 200px; }
   .calendar-controls { gap: 10px; }
   .cal-title { font-size: .88rem; min-width: 140px; }
+  .quote-panel { flex-direction: column; gap: 10px; }
+  .quote-meta { margin-left: 0; justify-content: space-between; width: 100%; }
+  .quote-meta-item { text-align: left; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .profile-bar { gap: 4px; }
+  .profile-tag { font-size: .64rem; padding: 3px 8px; }
 }
 </style>
 </head>
@@ -192,8 +221,27 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       <div id="tickerLoading" class="loading" style="display:none;"><div class="spinner"></div><span>Fetching data...</span></div>
       <div id="tickerResults" style="display:none;">
         <div class="company-info" style="margin-top:16px;"><h2 id="companyName"></h2><span id="tickerBadge" class="ticker-badge"></span></div>
+        <div id="profileBar" class="profile-bar" style="display:none;"></div>
+        <div id="quotePanel" class="quote-panel" style="display:none;">
+          <span id="quotePrice" class="quote-price"></span>
+          <span id="quoteChange" class="quote-change"></span>
+          <div class="quote-meta">
+            <div class="quote-meta-item"><div class="quote-meta-label">Open</div><div id="quoteOpen" class="quote-meta-value"></div></div>
+            <div class="quote-meta-item"><div class="quote-meta-label">High</div><div id="quoteHigh" class="quote-meta-value"></div></div>
+            <div class="quote-meta-item"><div class="quote-meta-label">Low</div><div id="quoteLow" class="quote-meta-value"></div></div>
+            <div class="quote-meta-item"><div class="quote-meta-label">Prev Close</div><div id="quotePrevClose" class="quote-meta-value"></div></div>
+          </div>
+        </div>
         <div id="upcomingSection" class="upcoming-inline" style="display:none;"><strong>Next Earnings:</strong> <span id="upcomingDates"></span></div>
-        <div class="card" style="margin-top:14px; margin-bottom:0;">
+        <div id="statsSection" class="card" style="display:none; margin-bottom:14px;">
+          <div class="card-header">
+            <div class="card-title-group"><span class="card-accent accent-gold"></span><span class="card-title">Key Statistics</span></div>
+          </div>
+          <div class="card-body">
+            <div id="statsGrid" class="stats-grid"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:0; margin-bottom:0;">
           <div class="card-header">
             <div class="card-title-group"><span class="card-accent accent-green"></span><span class="card-title">Quarterly Earnings History</span></div>
           </div>
@@ -556,9 +604,11 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     }
 
     try {
-      const [profileResp, earningsResp] = await Promise.all([
+      const [profileResp, earningsResp, quoteResp, metricResp] = await Promise.all([
         fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${key}`),
         fetch(`https://finnhub.io/api/v1/stock/earnings?symbol=${ticker}&token=${key}`),
+        fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`),
+        fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${key}`),
       ]);
 
       tickerLoading.style.display = "none";
@@ -571,6 +621,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 
       const profile = await profileResp.json();
       const earnings = await earningsResp.json();
+      const quote = quoteResp.ok ? await quoteResp.json() : null;
+      const metricData = metricResp.ok ? await metricResp.json() : null;
 
       if (!profile.name && !profile.ticker) {
         tickerError.textContent = `Ticker "${ticker}" not found.`;
@@ -578,7 +630,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
         return;
       }
 
-      renderTickerResults(ticker, profile, earnings);
+      renderTickerResults(ticker, profile, earnings, quote, metricData);
     } catch (err) {
       tickerLoading.style.display = "none";
       tickerError.textContent = "Network error.";
@@ -586,11 +638,85 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     }
   }
 
-  function renderTickerResults(ticker, profile, earnings) {
+  function renderTickerResults(ticker, profile, earnings, quote, metricData) {
     tickerResults.style.display = "block";
     document.getElementById("companyName").textContent = profile.name || ticker;
     document.getElementById("tickerBadge").textContent = ticker;
 
+    // ── Profile bar (industry, country, exchange, IPO) ──
+    const profileBar = document.getElementById("profileBar");
+    const tags = [];
+    if (profile.finnhubIndustry) tags.push(`<span class="profile-tag"><strong>Industry:</strong> ${profile.finnhubIndustry}</span>`);
+    if (profile.exchange) tags.push(`<span class="profile-tag"><strong>Exchange:</strong> ${profile.exchange}</span>`);
+    if (profile.country) tags.push(`<span class="profile-tag"><strong>Country:</strong> ${profile.country}</span>`);
+    if (profile.ipo) tags.push(`<span class="profile-tag"><strong>IPO:</strong> ${profile.ipo}</span>`);
+    if (profile.marketCapitalization) tags.push(`<span class="profile-tag"><strong>Mkt Cap:</strong> ${fmtNum(profile.marketCapitalization * 1e6)}</span>`);
+    if (tags.length) {
+      profileBar.innerHTML = tags.join("");
+      profileBar.style.display = "flex";
+    } else {
+      profileBar.style.display = "none";
+    }
+
+    // ── Quote panel (live price) ──
+    const quotePanel = document.getElementById("quotePanel");
+    if (quote && quote.c) {
+      const price = quote.c;
+      const change = quote.d != null ? quote.d : 0;
+      const changePct = quote.dp != null ? quote.dp : 0;
+      const dir = change > 0 ? "up" : change < 0 ? "down" : "flat";
+      const sign = change >= 0 ? "+" : "";
+
+      document.getElementById("quotePrice").textContent = `$${price.toFixed(2)}`;
+      const changeEl = document.getElementById("quoteChange");
+      changeEl.textContent = `${sign}${change.toFixed(2)} (${sign}${changePct.toFixed(2)}%)`;
+      changeEl.className = `quote-change ${dir}`;
+      document.getElementById("quoteOpen").textContent = quote.o != null ? `$${quote.o.toFixed(2)}` : "\u2014";
+      document.getElementById("quoteHigh").textContent = quote.h != null ? `$${quote.h.toFixed(2)}` : "\u2014";
+      document.getElementById("quoteLow").textContent = quote.l != null ? `$${quote.l.toFixed(2)}` : "\u2014";
+      document.getElementById("quotePrevClose").textContent = quote.pc != null ? `$${quote.pc.toFixed(2)}` : "\u2014";
+      quotePanel.style.display = "flex";
+    } else {
+      quotePanel.style.display = "none";
+    }
+
+    // ── Key statistics grid ──
+    const statsSection = document.getElementById("statsSection");
+    const statsGrid = document.getElementById("statsGrid");
+    const m = metricData && metricData.metric ? metricData.metric : {};
+    const statItems = [];
+    function addStat(label, val, fmt) {
+      if (val != null && val !== "" && val !== 0) statItems.push({ label, value: fmt ? fmt(val) : val });
+    }
+    addStat("52-Week High", m["52WeekHigh"], v => `$${Number(v).toFixed(2)}`);
+    addStat("52-Week Low", m["52WeekLow"], v => `$${Number(v).toFixed(2)}`);
+    addStat("52-Wk Price Return", m["52WeekPriceReturnDaily"], v => `${Number(v).toFixed(2)}%`);
+    addStat("P/E (TTM)", m.peTTM, v => Number(v).toFixed(2));
+    addStat("P/S (TTM)", m.psTTM, v => Number(v).toFixed(2));
+    addStat("P/B (Quarterly)", m.pbQuarterly, v => Number(v).toFixed(2));
+    addStat("EPS (TTM)", m.epsTTM, v => `$${Number(v).toFixed(2)}`);
+    addStat("Dividend Yield", m.dividendYieldIndicatedAnnual, v => `${Number(v).toFixed(2)}%`);
+    addStat("ROE (TTM)", m.roeTTM, v => `${Number(v).toFixed(2)}%`);
+    addStat("ROA (TTM)", m.roaTTM, v => `${Number(v).toFixed(2)}%`);
+    addStat("Gross Margin (TTM)", m.grossMarginTTM, v => `${Number(v).toFixed(2)}%`);
+    addStat("Net Margin (TTM)", m.netProfitMarginTTM, v => `${Number(v).toFixed(2)}%`);
+    addStat("Debt/Equity (Q)", m.totalDebtToEquityQuarterly, v => Number(v).toFixed(2));
+    addStat("Current Ratio (Q)", m.currentRatioQuarterly, v => Number(v).toFixed(2));
+    addStat("Revenue/Share (TTM)", m.revenuePerShareTTM, v => `$${Number(v).toFixed(2)}`);
+    addStat("10-Day Avg Volume", m["10DayAverageTradingVolume"], v => `${Number(v).toFixed(2)}M`);
+    addStat("Beta", m.beta, v => Number(v).toFixed(3));
+    addStat("Market Cap", profile.marketCapitalization, v => fmtNum(v * 1e6));
+
+    if (statItems.length) {
+      statsGrid.innerHTML = statItems.map(s =>
+        `<div class="stat-cell"><div class="stat-label">${s.label}</div><div class="stat-value">${s.value}</div></div>`
+      ).join("");
+      statsSection.style.display = "block";
+    } else {
+      statsSection.style.display = "none";
+    }
+
+    // ── Upcoming earnings ──
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = calEvents.filter(e => e.symbol === ticker && e.date >= today).map(e => e.date);
     const upSec = document.getElementById("upcomingSection");
@@ -601,6 +727,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       upSec.style.display = "none";
     }
 
+    // ── Earnings history table ──
     const body = document.getElementById("earningsBody");
     if (!earnings.length) {
       body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">No earnings history available</td></tr>';
