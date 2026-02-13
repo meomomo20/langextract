@@ -153,6 +153,21 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 /* ── Day detail ──────────────────────────────────────────── */
 .day-detail { border-top: 2px solid var(--gold); }
 .day-detail .card-body h3 { font-size: .88rem; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+.symbol-link { color: var(--gold); cursor: pointer; font-weight: 700; text-decoration: none; transition: color .15s; }
+.symbol-link:hover { color: #f0d68a; text-decoration: underline; }
+.company-name-cell { color: var(--text-muted); font-family: var(--font); font-weight: 400; font-size: .72rem; }
+
+/* ── News section ────────────────────────────────────────── */
+.news-list { display: flex; flex-direction: column; gap: 12px; }
+.news-item { display: flex; gap: 14px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); transition: border-color .15s, background .15s; text-decoration: none; color: inherit; }
+.news-item:hover { border-color: var(--border-light); background: var(--surface2); }
+.news-thumb { width: 80px; height: 56px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--surface2); }
+.news-body { flex: 1; min-width: 0; }
+.news-headline { font-size: .82rem; font-weight: 600; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.news-meta { display: flex; gap: 10px; margin-top: 4px; font-size: .68rem; color: var(--text-muted); font-weight: 500; }
+.news-source { color: var(--gold); font-weight: 600; }
+.news-summary { font-size: .72rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.news-empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: .82rem; }
 
 /* ── API key (bottom) ────────────────────────────────────── */
 .api-section { margin-top: 32px; }
@@ -196,6 +211,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .profile-bar { gap: 4px; }
   .profile-tag { font-size: .64rem; padding: 3px 8px; }
+  .news-thumb { width: 60px; height: 42px; }
+  .news-headline { font-size: .76rem; }
+  .news-summary { display: none; }
 }
 </style>
 </head>
@@ -278,6 +296,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
             </div>
           </div>
         </div>
+        <div id="newsSection" class="card" style="display:none; margin-top:14px;">
+          <div class="card-header">
+            <div class="card-title-group"><span class="card-accent accent-blue"></span><span class="card-title">Latest News</span></div>
+          </div>
+          <div class="card-body">
+            <div id="newsList" class="news-list"></div>
+          </div>
+        </div>
         <div class="card" id="quarterlySection" style="display:none; margin-top:14px;">
           <div class="card-header"><div class="card-title-group"><span class="card-accent accent-blue"></span><span class="card-title">Quarterly Financials</span></div></div>
           <div class="card-body"><div class="chart-container"><canvas id="quarterlyChart"></canvas></div></div>
@@ -320,7 +346,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       <h3 id="dayDetailTitle"></h3>
       <div class="table-wrap">
         <table class="earnings-table">
-          <thead><tr><th>Symbol</th><th>Time</th><th>EPS Est.</th><th>Rev. Est.</th></tr></thead>
+          <thead><tr><th>Symbol</th><th>Company</th><th>Time</th><th>EPS Est.</th><th>Rev. Est.</th></tr></thead>
           <tbody id="dayDetailBody"></tbody>
         </table>
       </div>
@@ -570,6 +596,25 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     });
   }
 
+  // ── Company name cache ──
+  const companyNameCache = {};
+
+  async function fetchCompanyName(symbol) {
+    if (companyNameCache[symbol]) return companyNameCache[symbol];
+    const key = getApiKey();
+    if (!key) return "";
+    try {
+      const resp = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${key}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const name = data.name || "";
+        companyNameCache[symbol] = name;
+        return name;
+      }
+    } catch {}
+    return "";
+  }
+
   function showDayDetail(dateStr) {
     calendarEl.querySelectorAll(".cal-day").forEach(c => c.classList.remove("selected"));
     const sel = calendarEl.querySelector(`[data-date="${dateStr}"]`);
@@ -585,14 +630,39 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     if (hol) title += ` \u2014 ${hol}`;
     dayDetailTitle.textContent = title;
 
-    dayDetailBody.innerHTML = evts
-      .sort((a,b) => (a.symbol||"").localeCompare(b.symbol||""))
-      .map(e => {
-        const hour = e.hour === "bmo" ? "Before Open" : e.hour === "amc" ? "After Close" : e.hour || "TBD";
-        const eps = e.epsEstimate != null ? `$${Number(e.epsEstimate).toFixed(2)}` : "\u2014";
-        const rev = e.revenueEstimate != null ? fmtNum(e.revenueEstimate) : "\u2014";
-        return `<tr><td><strong>${e.symbol}</strong></td><td>${hour}</td><td>${eps}</td><td>${rev}</td></tr>`;
-      }).join("");
+    const sorted = evts.sort((a,b) => (a.symbol||"").localeCompare(b.symbol||""));
+    dayDetailBody.innerHTML = sorted.map(e => {
+      const hour = e.hour === "bmo" ? "Before Open" : e.hour === "amc" ? "After Close" : e.hour || "TBD";
+      const eps = e.epsEstimate != null ? `$${Number(e.epsEstimate).toFixed(2)}` : "\u2014";
+      const rev = e.revenueEstimate != null ? fmtNum(e.revenueEstimate) : "\u2014";
+      return `<tr>
+        <td><a class="symbol-link" data-ticker="${e.symbol}">${e.symbol}</a></td>
+        <td class="company-name-cell" data-name-for="${e.symbol}">Loading...</td>
+        <td>${hour}</td><td>${eps}</td><td>${rev}</td>
+      </tr>`;
+    }).join("");
+
+    // Make symbols clickable
+    dayDetailBody.querySelectorAll(".symbol-link").forEach(link => {
+      link.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const t = link.dataset.ticker;
+        tickerInput.value = t;
+        doSearch();
+        document.querySelector(".card-body .search-bar").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    // Fetch company names in background
+    sorted.forEach(e => {
+      const cell = dayDetailBody.querySelector(`[data-name-for="${e.symbol}"]`);
+      if (!cell) return;
+      const cached = companyNameCache[e.symbol];
+      if (cached) { cell.textContent = cached; return; }
+      fetchCompanyName(e.symbol).then(name => {
+        cell.textContent = name || e.symbol;
+      });
+    });
 
     dayDetail.style.display = "block";
     dayDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -628,11 +698,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     }
 
     try {
-      const [profileResp, earningsResp, quoteResp, metricResp] = await Promise.all([
+      // News date range: last 30 days
+      const newsTo = new Date().toISOString().slice(0,10);
+      const newsFromDt = new Date(); newsFromDt.setDate(newsFromDt.getDate() - 30);
+      const newsFrom = newsFromDt.toISOString().slice(0,10);
+
+      const [profileResp, earningsResp, quoteResp, metricResp, newsResp] = await Promise.all([
         fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${key}`),
         fetch(`https://finnhub.io/api/v1/stock/earnings?symbol=${ticker}&token=${key}`),
         fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`),
         fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${key}`),
+        fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${newsFrom}&to=${newsTo}&token=${key}`),
       ]);
 
       tickerLoading.style.display = "none";
@@ -647,6 +723,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       const earnings = await earningsResp.json();
       const quote = quoteResp.ok ? await quoteResp.json() : null;
       const metricData = metricResp.ok ? await metricResp.json() : null;
+      const news = newsResp.ok ? await newsResp.json() : [];
 
       if (!profile.name && !profile.ticker) {
         tickerError.textContent = `Ticker "${ticker}" not found.`;
@@ -654,7 +731,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
         return;
       }
 
-      renderTickerResults(ticker, profile, earnings, quote, metricData);
+      renderTickerResults(ticker, profile, earnings, quote, metricData, news);
     } catch (err) {
       tickerLoading.style.display = "none";
       tickerError.textContent = "Network error.";
@@ -662,10 +739,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     }
   }
 
-  function renderTickerResults(ticker, profile, earnings, quote, metricData) {
+  function renderTickerResults(ticker, profile, earnings, quote, metricData, news) {
     tickerResults.style.display = "block";
     document.getElementById("companyName").textContent = profile.name || ticker;
     document.getElementById("tickerBadge").textContent = ticker;
+
+    // Cache company name
+    if (profile.name) companyNameCache[ticker] = profile.name;
 
     // ── Profile bar (industry, country, exchange, IPO) ──
     const profileBar = document.getElementById("profileBar");
@@ -790,11 +870,46 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       }).join("");
     }
 
+    // ── Latest news ──
+    const newsSection = document.getElementById("newsSection");
+    const newsList = document.getElementById("newsList");
+    const newsArr = Array.isArray(news) ? news : [];
+    if (newsArr.length) {
+      const top = newsArr.slice(0, 10);
+      newsList.innerHTML = top.map(n => {
+        const date = n.datetime ? new Date(n.datetime * 1000) : null;
+        const dateStr = date ? fmtDate(date) : "";
+        const img = n.image ? `<img class="news-thumb" src="${n.image}" alt="" loading="lazy" onerror="this.style.display='none'">` : "";
+        const summary = n.summary ? `<div class="news-summary">${escHtml(n.summary)}</div>` : "";
+        const url = n.url || "#";
+        return `<a class="news-item" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">
+          ${img}
+          <div class="news-body">
+            <div class="news-headline">${escHtml(n.headline || "Untitled")}</div>
+            <div class="news-meta">
+              <span class="news-source">${escHtml(n.source || "")}</span>
+              <span>${dateStr}</span>
+            </div>
+            ${summary}
+          </div>
+        </a>`;
+      }).join("");
+      newsSection.style.display = "block";
+    } else {
+      newsList.innerHTML = '<div class="news-empty">No recent news available</div>';
+      newsSection.style.display = "block";
+    }
+
     document.getElementById("quarterlySection").style.display = "none";
     document.getElementById("yearlySection").style.display = "none";
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
+  function escHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
   function pad(n) { return String(n).padStart(2, "0"); }
   function fmtDate(dt) {
     const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
